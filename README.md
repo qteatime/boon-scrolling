@@ -4,7 +4,7 @@ A small simulation about doom-scrolling—except all content is cute and positiv
 
 ## Running
 
-You can play the game by just going to [https://boon-scrolling.qteati.me].
+You can play the game by just going to https://boon-scrolling.qteati.me.
 
 ## Developing, Remixing, Etc.
 
