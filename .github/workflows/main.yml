@@ -31,9 +31,7 @@ jobs:
           git checkout gh-pages
           rm -r docs
           mv packages/me.qteati.boon-scrolling docs
-          if [ -z $(git status --porcelain) ]; then
-            echo "Nothing to do"
-          else
+          if [ -n "$(git status --porcelain)" ]; then
             git add docs
             git config --global user.name "Quil, but a robot"
             git config --global user.email "robotlolita@users.noreply.github.com"
