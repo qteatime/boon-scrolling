@@ -1,0 +1,13 @@
+{
+  "name": "crochet.random",
+  "type": "group",
+  "target": "*",
+  "stability": "experimental",
+  "dependencies": ["crochet.core"],
+  "native_sources": ["native/xorshift.js"],
+  "sources": ["source/random.crochet"],
+  "capabilities": {
+    "requires": [],
+    "provides": []
+  }
+}

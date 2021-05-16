@@ -1,0 +1,6 @@
+{
+  "name": "me.qteati.boon-scrolling",
+  "target": "browser",
+  "sources": ["main.crochet"],
+  "dependencies": ["crochet.core", "crochet.random", "crochet.novella", "crochet.debug"]
+}

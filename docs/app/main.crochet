@@ -1,0 +1,182 @@
+% crochet
+
+open crochet.debug;
+open crochet.novella;
+open crochet.random;
+
+singleton player;
+singleton app;
+
+relation content: Content*;
+relation last: Content;
+
+command say: Thing do
+  novella show: (Thing as element | paragraph);
+end
+
+command app generate-content do
+  let Content = [
+    "Someone has shared a video of two small kittens cuddling. The white
+    one has its eyes closed the whole time, which makes you smile with
+    your whole face instinctively.",
+
+    "There's a new illustration from one of your favourite artists. Once
+    again, her use of warm watercolour and simplified forms has captured
+    your heart.",
+
+    "You stop scrolling for a moment. The obscure shoegaze band you found
+    the other day was releasing a new full-length album? And they had an
+    MV for one fo the songs out already!?",
+
+    "It's your friend's birthday. She posted a picture holding her fluffy
+    kooikerhondje. You can feel Petra's soft fur from the screen.",
+
+    "Some people are talking about this laid back show about a group of
+    girls who go around camping. It sounds like something you'd enjoy.
+    You make a mental note about trying to watch it eventually.",
+
+    "For some reason your timeline is full of fan-art shipping the heroine
+    and the villainess in this new super-hero show. You don't really complain,
+    but you can't say you understand it either.",
+
+    "Your friend, Erin, has shared new photos of her cat. The two of you had
+    gone to the cat shelter to adopt the black cat just the year before, and
+    the little darling seemed in much higher spirits now.",
+
+    "A cosplayer you follow just posted some new photos of the cosplay she's
+    working on. You enjoy seeing people work on cosplay props in particular.",
+
+    "Someone has started a thread about women who look particularly good in
+    suits. You're looking respectfully.",
+
+    "It seems that the entertainer you follow has got a new streaming program.
+    You're looking forward to it. Her shit-posting abilities are second to none.",
+
+    "Looks like the idol group you follow has announced that they're going to
+    start their own cooking show. You remember that none of the girls can cook,
+    and decide that the ensuing disaster is a thing that you must, absolutely,
+    watch.",
+
+    "Someone shared a photo of a princess cake they just bought. It made you
+    want to order at least one slice as well.",
+
+    "Looks like there's a new manga about a woman who has moved into a new
+    neighbourhood and fell in love with another woman at first sight. You've
+    been a fan of the author for a long time, so you have high hopes for this one.",
+
+    "A youtuber you follow has announced they'll be streaming a comfy game
+    tomorrow. You're looking forward to the five or more hours of quality
+    content.",
+
+    "There's a new episode of the queer vampires web series that you started
+    watching last week. The fandom raving about the sexual tension between
+    the two protagonists—though you're more interested in the rare interactions
+    between the main girl and her friend from the linguistics course.",
+
+    "Your friend just posted about getting a promotion. “Guess who's a
+    senior engineer now?”. You're happy for them.",
+
+    "Someone is making cute plushies of the characters from the collectible
+    cards series you follow. The little monsters look extremely soft and
+    adorable.",
+
+    "It's the birthday of a character from the idol anime you follow, and
+    of course your timeline is full of people sharing illustrations, videos
+    and collages under the celebratory hashtag.",
+
+    "Your friend has posted a photo of his cat sitting on top of his laptop.
+    “Well it's not like I needed to work today or anything...” The cat
+    definitely doesn't care, and seems intent in making itself as comfortable
+    there as possible.",
+
+    "Your friend has posted a photo of her cat laying down showing its fluffy
+    belly along with the caption “No regrets!” You can imagine that her
+    arm wasn't as happy as she seemed to be. You, too, pet the cat—albeit
+    virtually.",
+
+    "The account which tweets the most important aspects of video games is
+    talking about a new game where you can carry cats and dogs around and
+    give them pets. You instantly add it to your wishlist.",
+
+    "Someone posted a small excerpt of the magical girls show for children
+    that you watch occasionally. You're always impressed by how fluid and
+    powerful some of the action animation sequences are.",
+
+    "There's a new manga about the everyday life of a girl who ends up
+    in an MMORPG and decides that she may as well go on a culinary
+    adventure.",
+
+    "An artist you follow posted a photo of herself wearing a dinosaur
+    onesie, along with the caption “RAWR is how I'm saying “I'm hungry”
+    in this university now”.",
+
+    "A lolita brand that you adore has announced their sprint collection,
+    with plenty of pink pastels this time. You apologise to your bank account
+    in advance and whisper “Hello gorgeous” to the more classical one-piece
+    and stripped socks.",
+  ];
+
+  for X in Content do fact content: X end;
+end
+
+command main-html: Root do
+  #random with-source: (#random with-seed: 135953721) do: {
+    novella with-root: Root do: {
+      novella show: [
+        "Boonscrolling" as element | title,
+        "A tiny, endless si(lly)mulation." as element | subtitle,
+      ];
+
+      say:
+      "You're sitting in the sofa, bored and overwhelmed. Life has been
+      a bit too much for you lately.";
+      
+      say:
+      "You pick up your phone and open the usual application.
+      The short messages show up in the screen.";
+
+      novella show: nvl-empty divider;
+      novella wait-interaction;
+
+      app generate-content;
+
+      simulate for [app, player] until action quiescence
+      on pick-action: Actions for: Actor do
+        Actor choose-action: Actions;
+      end
+    }
+  };
+end
+
+command app choose-action: Actions do
+  let Choice = #random global choose: Actions;
+  Choice;
+end
+
+command player choose-action: Actions do
+  novella choose-action: Actions;
+end
+
+
+action app choose-content
+when
+  sample 4 of content: Content,
+  not last: Content
+do
+  say: Content;
+  forget content: Content;
+  fact last: Content;
+end
+
+action player like "Like"
+do end
+
+action player share "Share"
+do end
+
+when
+  let Items = (search sample 1 of content: _),
+  if Items is-empty
+do
+  app generate-content;
+end

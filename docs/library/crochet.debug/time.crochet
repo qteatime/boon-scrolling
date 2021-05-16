@@ -1,0 +1,9 @@
+% crochet
+
+singleton benchmark;
+
+command benchmark block: (Block is function-0) tag: (Tag is text)
+  = foreign debug.time(Tag, Block);
+
+command benchmark block: Block =
+  benchmark block: Block tag: "Time";

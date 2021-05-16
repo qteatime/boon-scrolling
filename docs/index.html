@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crochet</title>
+    <link rel="stylesheet" href="crochet.css" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="crochet"></div>
+    <script src="crochet.js"></script>
+    <script>
+      void (async function () {
+        const root = document.querySelector("#crochet");
+        try {
+          const crochet = new Crochet.CrochetForBrowser(
+            "library",
+            new Set([]),
+            false
+          );
+          await crochet.boot_from_file(
+            "app/crochet.json",
+            Crochet.Package.target_web()
+          );
+          await crochet.run("main-html: _", [crochet.ffi.box(root)]);
+        } catch (error) {
+          console.error(error);
+          const element = document.createElement("div");
+          element.className = "crochet-error";
+          element.appendChild(document.createTextNode(error.message));
+          root.appendChild(element);
+        }
+      })();
+    </script>
+  </body>
+</html>

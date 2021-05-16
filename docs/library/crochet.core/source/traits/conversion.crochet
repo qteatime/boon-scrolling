@@ -1,0 +1,68 @@
+% crochet
+
+command integer as float
+requires
+  within-float-bounds :: (self > -9007199254740992) and (self < 9007199254740992)
+do
+  foreign integer.to-float(self)
+test
+  assert (1 as float) =:= 1.0;
+  assert (0 as float) =:= 0.0;
+  assert (-1 as float) =:= -1.0;
+end
+
+command float as integer
+requires
+  integral :: self =:= self truncate
+do
+  foreign float.to-integer(self)
+test
+  assert (1.0 as integer) =:= 1;
+  assert (0.0 as integer) =:= 0;
+  assert (-1.0 as integer) =:= -1;
+end
+
+command (X is tuple) as interpolation
+  = foreign conversion.tuple-to-interpolation(X)
+test
+  assert (["a", 1, "c"] as interpolation) =:= "["a"][1]["c"]";
+end
+
+command (X is text) as interpolation
+  = "[X]"
+test
+  assert ("abc" as interpolation) =:= "["abc"]";
+end
+
+
+abstract conversion-error;
+type error-parsing-integer is conversion-error(value);
+type error-parsing-float is conversion-error(value);
+
+command #integer try-parse: (X is text) -> result do
+  let Result = foreign integer.parse(X);
+  condition
+    when Result =:= nothing => (#result error: new error-parsing-integer(X));
+    always => #result ok: Result;
+  end
+test
+  assert (#integer try-parse: "123").value =:= 123;
+  assert (#integer try-parse: "-123").value =:= -123;
+  assert (#integer try-parse: "123.0") is error;
+  assert (#integer try-parse: "nope") is error;
+end
+
+command #float try-parse: (X is text) -> result do
+  let Result = foreign float.parse(X);
+  condition
+    when Result =:= nothing => (#result error: new error-parsing-float(X));
+    always => #result ok: Result;
+  end
+test
+  assert (#float try-parse: "123").value =:= 123.0;
+  assert (#float try-parse: "123.123").value =:= 123.123;
+  assert (#float try-parse: "-123.0").value =:= -123.0;
+  assert (#float try-parse: "NaN").value is-nan;
+  assert (#float try-parse: "nope") is error;
+end
+  
