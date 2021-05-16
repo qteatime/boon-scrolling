@@ -13,21 +13,27 @@ for building turn-based story games with a focus on independent AIs.
 
 You can install Crochet through [npm](https://nodejs.org/en/), which comes with
 Node.js. Currently Crochet requires you to use the command line
-(e.g.: `cmd.exe` or Power Shell on Windows). The following commands will install
-Crochet's version 0.5.0 and run this game:
+(e.g.: `cmd.exe` or Power Shell on Windows).
+
+The following command will install Crochet for this game and launch a local
+server, if you run it from the root of this project:
 
 ```shell
-npm install -g @origamitower/crochet@0.5.0
-crochet run-web "path/to/this/folder/game"
+npm install
+npm start
 ```
-
-Where you replace `"path/to/this/folder/game"` with the full path to the `game`
-folder inside of this directory.
-E.g.: `crochet run-web "C:\Users\You\Documents\boon-scrolling\game"`.
 
 You can then play the game by opening http://localhost:8080 in your browser.
 Any changes you make to `main.crochet` will take effect when you reload the
 page.
+
+You can generate a static website with all needed resources by running:
+
+```shell
+npm build
+```
+
+The generated website will be in the `packages/me.qteati.boon-scrolling` folder.
 
 ## Licence
 
