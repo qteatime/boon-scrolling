@@ -26,7 +26,7 @@ jobs:
       - run: |
           npm ci
           npm run build
-          git checkout gh-pages
+          git checkout origin/gh-pages
           rm -r docs
           mv packages/me.qteati.boon-scrolling docs
           git add docs
