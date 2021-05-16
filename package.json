@@ -1,9 +1,9 @@
 {
   "scripts": {
-    "build": "crochet package crochet.json",
-    "start": "crochet run-web crochet.json"
+    "build": "crochet package boon-scrolling/crochet.json",
+    "start": "crochet run-web boon-scrolling/crochet.json"
   },
   "dependencies": {
-    "@origamitower/crochet": "^0.9.0"
+    "@origamitower/crochet": "^0.9.3"
   }
 }
