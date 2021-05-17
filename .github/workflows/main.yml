@@ -18,6 +18,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
@@ -29,9 +31,11 @@ jobs:
           git checkout gh-pages
           rm -r docs
           mv packages/me.qteati.boon-scrolling docs
-          git add docs
-          git config --global user.name "Quil, but a robot"
-          git config --global user.email "robotlolita@users.noreply.github.com"
-          git commit -m "publish"
-          git push
+          if [ -n "$(git status --porcelain)" ]; then
+            git add docs
+            git config --global user.name "Quil, but a robot"
+            git config --global user.email "robotlolita@users.noreply.github.com"
+            git commit -m "publish"
+            git push
+          fi
     
