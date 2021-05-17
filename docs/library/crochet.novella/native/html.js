@@ -41,6 +41,11 @@ exports.default = (ffi) => {
         });
         return result;
     }
+    function sleep(ms) {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(), ms);
+        });
+    }
     function role_to_tag(x) {
         if (known_tags.includes(x)) {
             return x;
@@ -79,11 +84,46 @@ exports.default = (ffi) => {
         x.style.visibility = old_visibility;
         return dimensions;
     }
+    function scroll_to(container, element, time) {
+        const deferred = defer();
+        const st = container.scrollTop;
+        const ot = element.offsetTop;
+        const diff = ot - st;
+        let start = null;
+        const style = container.style;
+        const old_scroll_snap = style.scrollSnapType;
+        style.scrollSnapType = "none";
+        function step(ts) {
+            if (start == null) {
+                start = ts;
+            }
+            const elapsed = ts - start;
+            const done = elapsed / time;
+            const scroll = Math.min(ot, st + diff * done);
+            container.scrollTop = scroll;
+            if (done < 1) {
+                requestAnimationFrame(step);
+            }
+            else {
+                style.scrollSnapType = old_scroll_snap;
+                deferred.resolve();
+            }
+        }
+        requestAnimationFrame(step);
+        return deferred.promise;
+    }
     //#region Rendering
+    let PageStatus;
+    (function (PageStatus) {
+        PageStatus[PageStatus["NEW_PAGE"] = 0] = "NEW_PAGE";
+        PageStatus[PageStatus["PAGE_RENDERING"] = 1] = "PAGE_RENDERING";
+        PageStatus[PageStatus["OLD_PAGE"] = 2] = "OLD_PAGE";
+    })(PageStatus || (PageStatus = {}));
     class Canvas {
         constructor(root) {
             this.root = root;
             this.mark = null;
+            this.new_page = PageStatus.NEW_PAGE;
         }
     }
     function is_interactive(x) {
@@ -128,6 +168,26 @@ exports.default = (ffi) => {
         if (is_interactive(mark)) {
             canvas.mark = null;
         }
+    }
+    async function animate(x, frames, time) {
+        const deferred = defer();
+        const animation = x.animate(frames, time);
+        animation.addEventListener("finish", () => deferred.resolve());
+        animation.addEventListener("cancel", () => deferred.resolve());
+        await deferred.promise;
+    }
+    async function animate_appear(x, time) {
+        x.style.opacity = "0";
+        x.style.top = "-1em";
+        x.style.position = "relative";
+        const appear = [
+            { opacity: 0, top: "-1em" },
+            { opacity: 1, top: "0px" },
+        ];
+        await animate(x, appear, time);
+        x.style.opacity = "1";
+        x.style.top = "0px";
+        x.style.position = "relative";
     }
     function get_canvas(x0) {
         const x = ffi.unbox(x0);
@@ -175,14 +235,26 @@ exports.default = (ffi) => {
     ffi.defmachine("html.show", function* (canvas0, element0) {
         const canvas = get_canvas(canvas0);
         const element = ffi.unbox(element0);
-        yield ffi.await(wait_mark(canvas, element).then((_) => ffi.nothing));
-        canvas.root.appendChild(element);
-        element.scrollIntoView();
+        if (canvas.new_page === PageStatus.NEW_PAGE) {
+            canvas.new_page = PageStatus.PAGE_RENDERING;
+            canvas.mark = element;
+            const old_opacity = element.style.opacity;
+            element.style.opacity = "0";
+            canvas.root.appendChild(element);
+            yield ffi.await(scroll_to(canvas.root, element, 300).then((_) => ffi.nothing));
+            element.style.opacity = old_opacity;
+            element.classList.add("novella-appear");
+        }
+        else {
+            canvas.root.appendChild(element);
+            element.classList.add("novella-appear");
+        }
         return ffi.nothing;
     });
     ffi.defmachine("html.wait", function* (canvas0) {
         const canvas = get_canvas(canvas0);
         yield ffi.await(click_to_continue(canvas, null).then((_) => ffi.nothing));
+        canvas.new_page = PageStatus.NEW_PAGE;
         return ffi.nothing;
     });
     ffi.defun("html.make-canvas", (element) => {
@@ -197,7 +269,8 @@ exports.default = (ffi) => {
         set_reference(ref, button, value);
         return ffi.box(button);
     });
-    ffi.defmachine("html.wait-selection", function* (ref) {
+    ffi.defmachine("html.wait-selection", function* (canvas0, ref) {
+        const canvas = get_canvas(canvas0);
         const deferred = defer();
         const elements = refered_elements.get(ref);
         if (elements == null) {
@@ -205,7 +278,7 @@ exports.default = (ffi) => {
         }
         let listeners = [];
         for (const { value, element } of elements) {
-            const listener = (ev) => {
+            const listener = async (ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
                 for (const x of elements) {
@@ -217,12 +290,14 @@ exports.default = (ffi) => {
                     element.removeEventListener("click", listener);
                 }
                 element.setAttribute("data-selected", "true");
+                await sleep(300);
                 deferred.resolve(value);
             };
             listeners.push({ element, listener });
             element.addEventListener("click", listener, { once: true });
         }
         const result = yield ffi.await(deferred.promise);
+        canvas.new_page = PageStatus.NEW_PAGE;
         return result;
     });
 };

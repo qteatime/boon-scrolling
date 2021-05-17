@@ -60,6 +60,12 @@ export default (ffi: ForeignInterface) => {
     return result;
   }
 
+  function sleep(ms: number) {
+    return new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), ms);
+    });
+  }
+
   function role_to_tag(x: string) {
     if (known_tags.includes(x)) {
       return x;
@@ -104,9 +110,49 @@ export default (ffi: ForeignInterface) => {
     return dimensions;
   }
 
+  function scroll_to(
+    container: HTMLElement,
+    element: HTMLElement,
+    time: number
+  ) {
+    const deferred = defer<void>();
+    const st = container.scrollTop;
+    const ot = element.offsetTop;
+    const diff = ot - st;
+    let start: number | null = null;
+    const style: any = container.style;
+    const old_scroll_snap = style.scrollSnapType;
+    style.scrollSnapType = "none";
+
+    function step(ts: number) {
+      if (start == null) {
+        start = ts;
+      }
+      const elapsed = ts - start;
+      const done = elapsed / time;
+      const scroll = Math.min(ot, st + diff * done);
+      container.scrollTop = scroll;
+      if (done < 1) {
+        requestAnimationFrame(step);
+      } else {
+        style.scrollSnapType = old_scroll_snap;
+        deferred.resolve();
+      }
+    }
+    requestAnimationFrame(step);
+    return deferred.promise;
+  }
+
   //#region Rendering
+  enum PageStatus {
+    NEW_PAGE,
+    PAGE_RENDERING,
+    OLD_PAGE,
+  }
+
   class Canvas {
     public mark: HTMLElement | null = null;
+    public new_page = PageStatus.NEW_PAGE;
 
     constructor(readonly root: HTMLElement) {}
   }
@@ -166,6 +212,28 @@ export default (ffi: ForeignInterface) => {
     }
   }
 
+  async function animate(x: HTMLElement, frames: Keyframe[], time: number) {
+    const deferred = defer<void>();
+    const animation = x.animate(frames, time);
+    animation.addEventListener("finish", () => deferred.resolve());
+    animation.addEventListener("cancel", () => deferred.resolve());
+    await deferred.promise;
+  }
+
+  async function animate_appear(x: HTMLElement, time: number) {
+    x.style.opacity = "0";
+    x.style.top = "-1em";
+    x.style.position = "relative";
+    const appear = [
+      { opacity: 0, top: "-1em" },
+      { opacity: 1, top: "0px" },
+    ];
+    await animate(x, appear, time);
+    x.style.opacity = "1";
+    x.style.top = "0px";
+    x.style.position = "relative";
+  }
+
   function get_canvas(x0: CrochetValue) {
     const x = ffi.unbox(x0);
     if (x instanceof Canvas) {
@@ -216,16 +284,28 @@ export default (ffi: ForeignInterface) => {
   ffi.defmachine("html.show", function* (canvas0, element0) {
     const canvas = get_canvas(canvas0);
     const element = ffi.unbox(element0) as HTMLElement;
-
-    yield ffi.await(wait_mark(canvas, element).then((_) => ffi.nothing));
-    canvas.root.appendChild(element);
-    element.scrollIntoView();
+    if (canvas.new_page === PageStatus.NEW_PAGE) {
+      canvas.new_page = PageStatus.PAGE_RENDERING;
+      canvas.mark = element;
+      const old_opacity = element.style.opacity;
+      element.style.opacity = "0";
+      canvas.root.appendChild(element);
+      yield ffi.await(
+        scroll_to(canvas.root, element, 300).then((_) => ffi.nothing)
+      );
+      element.style.opacity = old_opacity;
+      element.classList.add("novella-appear");
+    } else {
+      canvas.root.appendChild(element);
+      element.classList.add("novella-appear");
+    }
     return ffi.nothing;
   });
 
   ffi.defmachine("html.wait", function* (canvas0) {
     const canvas = get_canvas(canvas0);
     yield ffi.await(click_to_continue(canvas, null).then((_) => ffi.nothing));
+    canvas.new_page = PageStatus.NEW_PAGE;
     return ffi.nothing;
   });
 
@@ -243,7 +323,8 @@ export default (ffi: ForeignInterface) => {
     return ffi.box(button);
   });
 
-  ffi.defmachine("html.wait-selection", function* (ref) {
+  ffi.defmachine("html.wait-selection", function* (canvas0, ref) {
+    const canvas = get_canvas(canvas0);
     const deferred = defer<CrochetValue>();
     const elements = refered_elements.get(ref);
     if (elements == null) {
@@ -260,7 +341,7 @@ export default (ffi: ForeignInterface) => {
       listener: (_: MouseEvent) => void;
     }[] = [];
     for (const { value, element } of elements) {
-      const listener = (ev: MouseEvent) => {
+      const listener = async (ev: MouseEvent) => {
         ev.preventDefault();
         ev.stopPropagation();
         for (const x of elements) {
@@ -272,6 +353,7 @@ export default (ffi: ForeignInterface) => {
           element.removeEventListener("click", listener);
         }
         element.setAttribute("data-selected", "true");
+        await sleep(300);
         deferred.resolve(value);
       };
       listeners.push({ element, listener });
@@ -279,6 +361,7 @@ export default (ffi: ForeignInterface) => {
     }
 
     const result = yield ffi.await(deferred.promise);
+    canvas.new_page = PageStatus.NEW_PAGE;
     return result;
   });
 };
