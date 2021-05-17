@@ -136,7 +136,6 @@ command main-html: Root do
       The short messages show up in the screen.";
 
       novella show: nvl-empty divider;
-      novella wait-interaction;
 
       app generate-content;
 

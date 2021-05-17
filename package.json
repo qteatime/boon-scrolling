@@ -4,6 +4,6 @@
     "start": "crochet run-web boon-scrolling/crochet.json"
   },
   "dependencies": {
-    "@origamitower/crochet": "^0.9.3"
+    "@origamitower/crochet": "^0.9.4"
   }
 }
